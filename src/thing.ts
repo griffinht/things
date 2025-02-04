@@ -13,17 +13,19 @@ app.get('/:id/', async (c) => {
         t.display_name,
         t.icon_url,
         t.url,
-        array_agg(t2.display_name) as linked_items
+        array_agg(json_build_object('id', t2.id, 'name', t2.display_name)) as linked_items
       FROM things t
       LEFT JOIN items i ON t.id = i.thing
       LEFT JOIN things t2 ON i.otherthing = t2.id
+      WHERE t.id = ${id}
+      GROUP BY t.id, t.display_name, t.icon_url, t.url
     `
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return c.text('Thing not found', 404)
     }
 
-    const thing = result.rows[0]
+    const thing = result[0]
 
     const html = `
       <!DOCTYPE html>
@@ -88,7 +90,7 @@ app.get('/:id/', async (c) => {
             ${thing.linked_items && thing.linked_items.filter(item => item !== null).length > 0 ? 
               `<ul>
                 ${thing.linked_items.filter(item => item !== null).map(item => `
-                  <li>${item}</li>
+                  <li><a href="/${item.id}/">${item.name}</a></li>
                 `).join('')}
               </ul>`
               : '<p>No linked items</p>'
