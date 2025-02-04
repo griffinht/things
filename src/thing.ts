@@ -8,15 +8,32 @@ app.get('/:id/', async (c) => {
 
   try {
     const result = await sql`
+      WITH outgoing_links AS (
+        SELECT 
+          t2.id,
+          t2.display_name
+        FROM items i 
+        JOIN things t2 ON i.otherthing = t2.id
+        WHERE i.thing = ${id}
+      ),
+      incoming_links AS (
+        SELECT 
+          t2.id,
+          t2.display_name
+        FROM items i 
+        JOIN things t2 ON i.thing = t2.id
+        WHERE i.otherthing = ${id}
+      )
       SELECT 
         t.id,
         t.display_name,
         t.icon_url,
         t.url,
-        array_agg(json_build_object('id', t2.id, 'name', t2.display_name)) as linked_items
+        array_agg(DISTINCT jsonb_build_object('id', ol.id, 'name', ol.display_name)) FILTER (WHERE ol.id IS NOT NULL) as outgoing_links,
+        array_agg(DISTINCT jsonb_build_object('id', il.id, 'name', il.display_name)) FILTER (WHERE il.id IS NOT NULL) as incoming_links
       FROM things t
-      LEFT JOIN items i ON t.id = i.thing
-      LEFT JOIN things t2 ON i.otherthing = t2.id
+      LEFT JOIN outgoing_links ol ON true
+      LEFT JOIN incoming_links il ON true
       WHERE t.id = ${id}
       GROUP BY t.id, t.display_name, t.icon_url, t.url
     `
@@ -86,14 +103,24 @@ app.get('/:id/', async (c) => {
           </div>
 
           <div class="linked-items">
-            <h2>Linked Items</h2>
-            ${thing.linked_items && thing.linked_items.filter(item => item !== null).length > 0 ? 
+            <h2>Outgoing Links</h2>
+            ${thing.outgoing_links && thing.outgoing_links.filter(item => item !== null).length > 0 ? 
               `<ul>
-                ${thing.linked_items.filter(item => item !== null).map(item => `
+                ${thing.outgoing_links.filter(item => item !== null).map(item => `
                   <li><a href="/${item.id}/">${item.name}</a></li>
                 `).join('')}
               </ul>`
-              : '<p>No linked items</p>'
+              : '<p>No outgoing links</p>'
+            }
+
+            <h2>Incoming Links</h2>
+            ${thing.incoming_links && thing.incoming_links.filter(item => item !== null).length > 0 ? 
+              `<ul>
+                ${thing.incoming_links.filter(item => item !== null).map(item => `
+                  <li><a href="/${item.id}/">${item.name}</a></li>
+                `).join('')}
+              </ul>`
+              : '<p>No incoming links</p>'
             }
           </div>
         </body>
