@@ -54,73 +54,102 @@ app.get('/:name/', async (c) => {
         <head>
           <style>
             body {
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-              font-family: Arial, sans-serif;
-            }
-            .thing-header {
+              margin: 0;
+              padding: 0;
               display: flex;
-              align-items: center;
-              gap: 20px;
-              margin-bottom: 20px;
             }
-            .thing-icon {
-              max-width: 100px;
-              height: auto;
+            .main-content {
+              flex: 1;
+              padding: 20px;
+              min-height: 100vh;
             }
-            .thing-details {
-              margin-top: 20px;
-            }
-            .linked-items {
-              margin-top: 20px;
-            }
-            a {
-              color: #0066cc;
-              text-decoration: none;
-            }
-            a:hover {
-              text-decoration: underline;
+            .sidebar {
+              width: 250px;
+              background: #f5f5f5;
+              padding: 20px;
+              border-left: 1px solid #ddd;
             }
             .back-link {
               display: block;
               margin-bottom: 20px;
+              color: #666;
+              text-decoration: none;
+            }
+            .back-link:hover {
+              text-decoration: underline;
+            }
+            .thing-header {
+              margin-bottom: 30px;
+            }
+            .thing-icon {
+              max-width: 100px;
+              height: auto;
+              margin-bottom: 10px;
+            }
+            .sidebar h2 {
+              font-size: 1.2em;
+              color: #666;
+              margin-top: 0;
+            }
+            .sidebar ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+            }
+            .sidebar li {
+              margin-bottom: 8px;
+              padding-bottom: 8px;
+              border-bottom: 1px solid #ddd;
+            }
+            .sidebar li:last-child {
+              border-bottom: none;
+            }
+            .sidebar a {
+              color: #333;
+              text-decoration: none;
+            }
+            .sidebar a:hover {
+              text-decoration: underline;
             }
           </style>
         </head>
         <body>
-          <a href="/" class="back-link">← Back to list</a>
-          
-          <div class="thing-header">
-            ${thing.icon_url ? 
-              `<a href="${thing.url}" target="_blank">
-                <img src="${thing.icon_url}" alt="${thing.display_name}" class="thing-icon">
-               </a>` 
-              : ''}
-            <h1>${thing.display_name}</h1>
+          <div class="main-content">
+            <a href="/" class="back-link">← Back to list</a>
+            
+            <div class="thing-header">
+              ${thing.icon_url ? 
+                `<a href="${thing.url}" target="_blank">
+                  <img src="${thing.icon_url}" alt="${thing.display_name}" class="thing-icon">
+                 </a>` 
+                : ''}
+              <h1>${thing.display_name}</h1>
+            </div>
+
+            <div class="thing-details">
+              <h2>Details</h2>
+              <p><strong>ID:</strong> ${thing.id}</p>
+              ${thing.url ? `<p><strong>URL:</strong> <a href="${thing.url}" target="_blank">${thing.url}</a></p>` : ''}
+            </div>
+
+            <div class="linked-items">
+              <h2>Outgoing Links</h2>
+              ${thing.outgoing_links && thing.outgoing_links.filter(item => item !== null).length > 0 ? 
+                `<ul>
+                  ${thing.outgoing_links.filter(item => item !== null).map(item => `
+                    <li>
+                      <a href="/${item.slug}/">${item.name}</a>
+                      ${item.url ? ` (<a href="${item.url}" target="_blank">link</a>)` : ''}
+                    </li>
+                  `).join('')}
+                </ul>`
+                : '<p>No outgoing links</p>'
+              }
+            </div>
           </div>
 
-          <div class="thing-details">
-            <h2>Details</h2>
-            <p><strong>ID:</strong> ${thing.id}</p>
-            ${thing.url ? `<p><strong>URL:</strong> <a href="${thing.url}" target="_blank">${thing.url}</a></p>` : ''}
-          </div>
-
-          <div class="linked-items">
-            <h2>Outgoing Links</h2>
-            ${thing.outgoing_links && thing.outgoing_links.filter(item => item !== null).length > 0 ? 
-              `<ul>
-                ${thing.outgoing_links.filter(item => item !== null).map(item => `
-                  <li>
-                    <a href="/${item.slug}/">${item.name}</a>
-                    ${item.url ? ` (<a href="${item.url}" target="_blank">link</a>)` : ''}
-                  </li>
-                `).join('')}
-              </ul>`
-              : '<p>No outgoing links</p>'
-            }
-
-            <h2>Incoming Links</h2>
+          <div class="sidebar">
+            <h2>Referenced By</h2>
             ${thing.incoming_links && thing.incoming_links.filter(item => item !== null).length > 0 ? 
               `<ul>
                 ${thing.incoming_links.filter(item => item !== null).map(item => `
