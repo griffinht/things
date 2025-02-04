@@ -1,23 +1,13 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-
-import pg from 'pg'
-const { Client } = pg
+import sql from './db'
+import thingRoutes from './thing'
 
 const app = new Hono()
 
 app.get('/', async (c) => {
-  const client = new Client({
-    host: 'localhost',
-    user: 'postgres',
-    password: 'your_passwordoijasdlajsdiuasdiuasdasd',
-    database: 'template1',
-    port: 5432
-  })
-
   try {
-    await client.connect()
-    const query = `
+    const result = await sql`
       SELECT 
         t.id,
         t.display_name,
@@ -29,9 +19,6 @@ app.get('/', async (c) => {
       LEFT JOIN things t2 ON i.otherthing = t2.id
       GROUP BY t.id, t.display_name, t.icon_url, t.url
     `
-    const result = await client.query(query)
-    await client.end()
-
     // Create HTML table
     const html = `
       <!DOCTYPE html>
@@ -59,6 +46,13 @@ app.get('/', async (c) => {
               height: auto;
               cursor: pointer;
             }
+            a {
+              color: #0066cc;
+              text-decoration: none;
+            }
+            a:hover {
+              text-decoration: underline;
+            }
           </style>
         </head>
         <body>
@@ -72,10 +66,10 @@ app.get('/', async (c) => {
               </tr>
             </thead>
             <tbody>
-              ${result.rows.map(row => `
+              ${result.map(row => `
                 <tr>
                   <td>${row.id}</td>
-                  <td>${row.display_name || ''}</td>
+                  <td><a href="/${row.id}/">${row.display_name || ''}</a></td>
                   <td>${row.icon_url ? `<a href="${row.url}" target="_blank"><img src="${row.icon_url}" alt="${row.display_name}"></a>` : ''}</td>
                   <td>${row.linked_items ? row.linked_items.filter(item => item !== null).join(', ') : ''}</td>
                 </tr>
@@ -91,6 +85,8 @@ app.get('/', async (c) => {
     return c.text('Failed to connect to database', 500)
   }
 })
+
+app.route('/', thingRoutes)
 
 const port = 3000
 console.log(`Server is running on http://localhost:${port}`)
