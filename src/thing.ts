@@ -3,40 +3,43 @@ import sql from './db'
 
 const app = new Hono()
 
-app.get('/:id/', async (c) => {
-  const id = c.req.param('id')
+app.get('/:name/', async (c) => {
+  const name = c.req.param('name')
 
   try {
     const result = await sql`
       WITH outgoing_links AS (
         SELECT 
           t2.id,
+          t2.name,
           t2.display_name,
           i.url as link_url
         FROM items i 
         JOIN things t2 ON i.otherthing = t2.id
-        WHERE i.thing = ${id}
+        WHERE i.thing = (SELECT id FROM things WHERE name = ${name})
       ),
       incoming_links AS (
         SELECT 
           t2.id,
+          t2.name,
           t2.display_name
         FROM items i 
         JOIN things t2 ON i.thing = t2.id
-        WHERE i.otherthing = ${id}
+        WHERE i.otherthing = (SELECT id FROM things WHERE name = ${name})
       )
       SELECT 
         t.id,
+        t.name,
         t.display_name,
         t.icon_url,
         t.url,
-        array_agg(DISTINCT jsonb_build_object('id', ol.id, 'name', ol.display_name, 'url', ol.link_url)) FILTER (WHERE ol.id IS NOT NULL) as outgoing_links,
-        array_agg(DISTINCT jsonb_build_object('id', il.id, 'name', il.display_name)) FILTER (WHERE il.id IS NOT NULL) as incoming_links
+        array_agg(DISTINCT jsonb_build_object('id', ol.id, 'name', ol.display_name, 'url', ol.link_url, 'slug', ol.name)) FILTER (WHERE ol.id IS NOT NULL) as outgoing_links,
+        array_agg(DISTINCT jsonb_build_object('id', il.id, 'name', il.display_name, 'slug', il.name)) FILTER (WHERE il.id IS NOT NULL) as incoming_links
       FROM things t
       LEFT JOIN outgoing_links ol ON true
       LEFT JOIN incoming_links il ON true
-      WHERE t.id = ${id}
-      GROUP BY t.id, t.display_name, t.icon_url, t.url
+      WHERE t.name = ${name}
+      GROUP BY t.id, t.name, t.display_name, t.icon_url, t.url
     `
 
     if (result.length === 0) {
@@ -109,7 +112,7 @@ app.get('/:id/', async (c) => {
               `<ul>
                 ${thing.outgoing_links.filter(item => item !== null).map(item => `
                   <li>
-                    <a href="/${item.id}/">${item.name}</a>
+                    <a href="/${item.slug}/">${item.name}</a>
                     ${item.url ? ` (<a href="${item.url}" target="_blank">link</a>)` : ''}
                   </li>
                 `).join('')}
@@ -121,7 +124,7 @@ app.get('/:id/', async (c) => {
             ${thing.incoming_links && thing.incoming_links.filter(item => item !== null).length > 0 ? 
               `<ul>
                 ${thing.incoming_links.filter(item => item !== null).map(item => `
-                  <li><a href="/${item.id}/">${item.name}</a></li>
+                  <li><a href="/${item.slug}/">${item.name}</a></li>
                 `).join('')}
               </ul>`
               : '<p>No incoming links</p>'

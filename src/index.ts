@@ -10,14 +10,16 @@ app.get('/', async (c) => {
     const result = await sql`
       SELECT 
         t.id,
+        t.name,
         t.display_name,
         t.icon_url,
         t.url,
-        array_agg(t2.display_name) as linked_items
+        array_agg(DISTINCT jsonb_build_object('name', t2.display_name, 'slug', t2.name)) FILTER (WHERE t2.id IS NOT NULL) as linked_items
       FROM things t
       LEFT JOIN items i ON t.id = i.thing
       LEFT JOIN things t2 ON i.otherthing = t2.id
-      GROUP BY t.id, t.display_name, t.icon_url, t.url
+      GROUP BY t.id, t.name, t.display_name, t.icon_url, t.url
+      ORDER BY t.display_name
     `
     // Create HTML table
     const html = `
@@ -53,13 +55,19 @@ app.get('/', async (c) => {
             a:hover {
               text-decoration: underline;
             }
+            .linked-item {
+              display: inline-block;
+              margin-right: 8px;
+            }
+            .linked-item:not(:last-child):after {
+              content: ",";
+            }
           </style>
         </head>
         <body>
           <table>
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Display Name</th>
                 <th>Icon</th>
                 <th>Linked Items</th>
@@ -68,10 +76,16 @@ app.get('/', async (c) => {
             <tbody>
               ${result.map(row => `
                 <tr>
-                  <td>${row.id}</td>
-                  <td><a href="/${row.id}/">${row.display_name || ''}</a></td>
+                  <td><a href="/${row.name}/">${row.display_name || ''}</a></td>
                   <td>${row.icon_url ? `<a href="${row.url}" target="_blank"><img src="${row.icon_url}" alt="${row.display_name}"></a>` : ''}</td>
-                  <td>${row.linked_items ? row.linked_items.filter(item => item !== null).join(', ') : ''}</td>
+                  <td>
+                    ${row.linked_items ? 
+                      row.linked_items
+                        .filter(item => item !== null)
+                        .map(item => `<span class="linked-item"><a href="/${item.slug}/">${item.name}</a></span>`)
+                        .join(' ') 
+                      : ''}
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
