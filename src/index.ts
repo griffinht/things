@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import sql from './db'
-import thingRoutes from './thing'
+import thingRoutes from './thing/thing'
 
 const app = new Hono()
 
@@ -65,6 +65,11 @@ app.get('/', async (c) => {
           </style>
         </head>
         <body>
+          <div style="margin: 20px 0;">
+            <button onclick="window.location.href='/create'" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+              Create New Thing
+            </button>
+          </div>
           <table>
             <thead>
               <tr>

@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
-import sql from './db'
+import sql from '../db.js'
+import { registerCreateRoutes } from './create'
 
 const app = new Hono()
+
+// Register create routes
+registerCreateRoutes(app)
 
 app.get('/:name/', async (c) => {
   const name = c.req.param('name')
