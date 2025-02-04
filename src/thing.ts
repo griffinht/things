@@ -11,7 +11,8 @@ app.get('/:id/', async (c) => {
       WITH outgoing_links AS (
         SELECT 
           t2.id,
-          t2.display_name
+          t2.display_name,
+          i.url as link_url
         FROM items i 
         JOIN things t2 ON i.otherthing = t2.id
         WHERE i.thing = ${id}
@@ -29,7 +30,7 @@ app.get('/:id/', async (c) => {
         t.display_name,
         t.icon_url,
         t.url,
-        array_agg(DISTINCT jsonb_build_object('id', ol.id, 'name', ol.display_name)) FILTER (WHERE ol.id IS NOT NULL) as outgoing_links,
+        array_agg(DISTINCT jsonb_build_object('id', ol.id, 'name', ol.display_name, 'url', ol.link_url)) FILTER (WHERE ol.id IS NOT NULL) as outgoing_links,
         array_agg(DISTINCT jsonb_build_object('id', il.id, 'name', il.display_name)) FILTER (WHERE il.id IS NOT NULL) as incoming_links
       FROM things t
       LEFT JOIN outgoing_links ol ON true
@@ -107,7 +108,10 @@ app.get('/:id/', async (c) => {
             ${thing.outgoing_links && thing.outgoing_links.filter(item => item !== null).length > 0 ? 
               `<ul>
                 ${thing.outgoing_links.filter(item => item !== null).map(item => `
-                  <li><a href="/${item.id}/">${item.name}</a></li>
+                  <li>
+                    <a href="/${item.id}/">${item.name}</a>
+                    ${item.url ? ` (<a href="${item.url}" target="_blank">link</a>)` : ''}
+                  </li>
                 `).join('')}
               </ul>`
               : '<p>No outgoing links</p>'
