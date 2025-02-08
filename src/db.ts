@@ -1,11 +1,5 @@
 import postgres from 'postgres'
 
-const sql = postgres({
-  host: 'localhost',
-  port: 5432,
-  database: 'template1',
-  username: 'postgres',
-  password: 'your_passwordoijasdlajsdiuasdiuasdasd'
-})
+const sql = postgres()
 
 export default sql
